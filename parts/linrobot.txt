@@ -1,0 +1,31 @@
+linorobot.org
+        XV-11 Lidar
+        Radxa Rock Pro
+        Teensy 3.1 Board
+$ 10    GY-85 IMU                banggood.com
+        L298N Motor Driver
+
+
+1 x XV-11 Lidar with Controller             - $200
+1 x Laptop/Desktop(Development Computer
+1 x Radxa Rock Pro Board (Robot’s computer) -           uSE ODROID
+1 x Teensy 3.1 Board                        - $ 20
+1 x                                - $ 12
+2 x L298N Chip                              - $ 10
+8 x 1N4001 Diodes
+4 x 10k Ω Resistors
+1 x 7400N Chip                              - $5
+1 x LM7805 Voltage Regulator
+1 x Breadboard or Prototyping Board
+1 x 3S Li-Po Battery
+2 x Motors -                                - $45 
+                       http://www.banggood.com/Self-balancing-Frame-Smart-Car-Balance-Car-Chassis-p-1020680.html
+2 x Wheels for the motors
+1 x Wood or Acrylic sheet
+1 x Caster Wheels                           -  $ 5
+
+Base Cose:
+https://github.com/grassjelly/linorobot.git
+Ros Code:
+git clone https://github.com/grassjelly/lino_setup.git
+

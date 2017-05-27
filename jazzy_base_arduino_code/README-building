@@ -1,0 +1,25 @@
+
+Building Arduino code on x86_64:
+  - instal Arduino IDE, make sure the arduino binary is in your path
+  - cd libraries 
+    #rebuild the ros_libs and place in library diractory
+  - rosrun rosserial_arduino make_libraries.py .
+Comile the ino file in IDE
+  - (arduinoIDE.sh)
+  - export CPATH="./libraries/ros_lib"
+  - arduino jazzy_base_arduino.ino
+  - built file will be in /tmp with .hex suffex
+
+
+
+On pine64(aarch64) host with arduino attached:
+  - make sure linobase udev rules are inplace
+      /etc/udev/rules.d/58-jazzbot-tty.rules:
+          KERNEL=="ttyACM?", SUBSYSTEM=="tty", ATTRS{idVendor}=="2341",ATTRS{idProduct}=="0042",MODE="0660", GROUP:="dialout", SYMLINK+="linobase"
+
+
+  - yum install avrdude: http://www.nongnu.org/avrdude
+  - upload it:
+       avrdude -p m2560 -cwiring -P /dev/linobase -b 115200 -F -U flash:w:/tmp/jazzy_base_arduino.ino.hex -D
+
+

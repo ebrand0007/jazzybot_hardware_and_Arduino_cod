@@ -1,0 +1,100 @@
+code-forked:
+  git clone https://github.com/grassjelly/linorobot.git
+  # setup info:  https://github.com/grassjelly/linorobot.git 
+
+
+pin mappings Teensy to Mega: Note, only these mega pins support interrupts: 2, 3, 18, 19, 20, 21
+  https://bigdanzblog.wordpress.com/2015/01/30/cant-get-i2c-to-work-on-an-arduino-nano-pinout-diagrams/#mega
+
+  			Teensy	Mega						Variable
+  Left Moter EncA	6	2 - supports interrupts, Analog In High/Low	left_encoder_a/(left_encoder)  M1 -Yel
+  Left Moter EncB	7	3 - supports interrupts, Analog In High/Low	left_encoder_b(left_encoder)   M1 -Red
+  Right Moter EncA	8	18 - supports interrupts, Analog In High/Low	right_encoder_a(right_encoder) M2 -Black
+  Right Moter EncA	9	19 - supports intgerupts, Analog In High/Low	right_encoder_b)right_encoder) M2 -Green
+  #Requires Code change to: arduino/driver/lib/config/lino_base_config.h
+
+  Left Motor Direction	20	7  - STooth Device A1 PWM Out High/Low only     left_motor_direction  M1 -Green 
+  Left Motor Speed	21	8  - STooth Device M1 PWM Out - speed 0-255     left_motor_pwm        M1 -Red
+  Right Moto Direction	22	9- - STooth Device A1 PWM Out High/Low only     right_motor_direction M2 -Greem
+  Right Motor Speed	23	10 - STooth Device M2 PWM Out -speed 0-255      right_motor_pwm       M2 -Red
+  Note: Sabertooth needs gnd connection From 0v to Arduino
+  
+  IMU SDA               18      20
+  IMU SCL               19      21
+  IMU VCC_IN (+5v)      
+  IMU Gnd
+
+
+arduino interrupt pins:
+https://www.arduino.cc/en/Reference/AttachInterrupt
+Board                                   Digital Pins Usable For Interrupts
+Uno, Nano, Mini, other 328-based        2, 3
+*Mega, Mega2560, MegaADK                2, 3, 18, 19, 20, 21
+Micro, Leonardo, other 32u4-based       0, 1, 2, 3, 7
+Zero                                    all digital pins, except 4
+MKR1000 Rev.1                           0, 1, 4, 5, 6, 7, 8, 9, A1, A2
+Due                                     all digital pins
+Teensy                                  all digital pins
+
+
+ROS info:
+http://wiki.ros.org/ROS/Tutorials (creating and building a package)
+
+sudo apt-get update
+sudo apt-get install ros-indigo-roslint
+sudo apt-get install ros-indigo-rosserial
+sudo apt-get install ros-indigo-imu-filter-madgwick
+sudo apt-get install ros-indigo-xv-11-laser-driver
+sudo apt-get install ros-indigo-gmapping
+sudo apt-get install ros-indigo-navigation
+sudo apt-get install ros-indigo-map-server
+cd ~/catkin_ws/src
+
+git clone https://github.com/grassjelly/lino_pid.git
+git clone https://github.com/grassjelly/linorobot.git
+git clone https://github.com/tonybaltovski/ros_arduino.git
+
+Ardunio building
+cd Arduino/..../libraries/  (Need to build/create ros_lib after buiding and installing lino_pid/lino_robot/ros_arduino)
+ rosrun rosserial_arduino make_libraries.py .
+ 
+
+ 
+Motor Controller - saber tooth 2X32
+DIP:
+      off  on
+     |-------|
+1    |     * |  Mode                    Both on for Analog
+2    |     * |  Mode                    Both on for Analog
+3    | *     |  Battery(off)            PowerSupply(on) (detects low battery when enabled)
+4    | *     |  Independent(off)        Mixed (on) (Independent Allows controlling each motor independently by signal appled to M1/M2)
+5    |     * |  Exponential(off)        Linear(on) (Speed increased exponentially by signal, or Linear(Preferred))
+6    | *     |  OneDirectional(off)     BiDirectional(on) (uses A1/A2 hig hi/lo to set motor direction for PWM speed M1/M2)
+     |-------|
+     
+     
+     
+Wire size - Sabertooth 2x32
+
+  Battery
+    16 gauge - Minimum
+    10 gauge - Typical
+    10 gauge - Max
+  Motors
+    16 gauge - Minimum
+    12 gauge - Typical
+    10 gauge - Max
+  Signal
+    28 gauge - Minimum
+    24 gauge - Typical (Telephone wire is 22 or 24 gauge)
+    18 gauge - Max
+  Operating temperature
+    0F (-20C)  - Minimum
+    70F (25C)  - Typical
+    160F (70C) - Max
+    
+    
+Sabertooth Arduino exapmle
+https://www.youtube.com/watch?v=QCNoVRgETRc
+
+

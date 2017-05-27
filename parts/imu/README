@@ -1,0 +1,15 @@
+Product  GY-85 IMU ADXL345 accelerometer, ITG3200 gyroscope and HMC5883L magnetometer)
+http://www.dx.com/p/gy-85-6dof-9dof-imu-sensor-module-for-arduino-148436#.V1lG4bOW_RY
+http://www.amazon.com/Puyu-GY-85-Sensor-Module-6DOF/dp/B00CPNB7OI 
+
+
+
+Info:
+https://github.com/madc/GY-85 (lacks gps)
+
+Arduino example
+https://github.com/sqrtmo/GY-85-arduino/tree/master/example
+
+
+Position/mounting guide:
+http://www.starlino.com/imu_guide.html

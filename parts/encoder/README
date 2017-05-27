@@ -1,0 +1,31 @@
+Product:
+http://www.gearbest.com/other-accessories/pp_336157.html - orderd from
+http://www.keyestudio.cc/h-nd-40-0_35.html?skeyword=photo - with code example for foto encoder
+
+
+
+code:
+https://www.youtube.com/watch?v=XIUrnR8bLAI
+http://www.homofaciens.de/technics-base-circuits-encoder-disc_en_navion.htm
+https://linorobot.org/base-controller/
+https://github.com/grassjelly/lino_pid
+http://forum.arduino.cc/index.php?topic=93824.0 (reading encoder with interupts)
+
+
+
+
+Pid:
+http://www.homofaciens.de/technics-computer-arduino-uno_en_navion.html
+
+
+
+
+Arduino intrupt pins:
+https://www.arduino.cc/en/Reference/AttachInterrupt
+Board                                   Digital Pins Usable For Interrupts
+Uno, Nano, Mini, other 328-based        2, 3
+*Mega, Mega2560, MegaADK                 2, 3, 18, 19, 20, 21
+Micro, Leonardo, other 32u4-based       0, 1, 2, 3, 7
+Zero                                    all digital pins, except 4
+MKR1000 Rev.1                           0, 1, 4, 5, 6, 7, 8, 9, A1, A2
+Due                                     all digital pins
