@@ -7,6 +7,7 @@ Building Arduino code on x86_64:
 Comile the ino file in IDE
   - (arduinoIDE.sh)
   - export CPATH="./libraries/ros_lib"
+       /home/ebrand/Documents/jazzy-robot/code/jazzybot/Arduino/jazzybot_hardware_and_Arduino_code/jazzy_base_arduino_code:.
   - arduino jazzy_base_arduino.ino
   - built file will be in /tmp with .hex suffex
 
