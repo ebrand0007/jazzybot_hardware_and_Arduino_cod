@@ -37,11 +37,23 @@
  POSSIBILITY OF SUCH DAMAGE. 
  
  */
+
+/* Publishing Encoder PID: 
+ *  https://github.com/tonybaltovski/ros_arduino/blob/indigo-devel/ros_arduino_base/firmware/two_wheel_base/two_wheel_base.ino
+*/
+
+/* TODO: Striving to make this compatible with ros_control
+ * http://wiki.ros.org/ros_control#Examples
+*/
+
 #if (ARDUINO >= 100)
 #include <Arduino.h>
 #else
 #include <WProgram.h>
 #endif
+
+//Version of code
+#define ARDUINO_CODE_VERSION 
 
 //Note: Must export CPATH="./libraries/ros_lib" to use these local libraries"
 #include <ros.h>
@@ -49,6 +61,11 @@
 //header file for publishing "rpm"
 #include <geometry_msgs/Vector3Stamped.h>
 
+//header for Encoder messages
+#include <ros_arduino_msgs/Encoders.h>
+
+//header for cmdDiff velocity messages
+#include <ros_arduino_msgs/CmdDiffVel.h>
 
 //header file for cmd_subscribing to "cmd_vel"
 //#include "ros_lib/geometry_msgs/Twist.h"
@@ -72,14 +89,16 @@
 #include "imu/imu_configuration.h"
 #include "lino_base_config.h"
 
+//Pick one option below to use interupts or not
 #define ENCODER_OPTIMIZE_INTERRUPTS
 //#define ENCODER_DO_NOT_USE_INTERRUPTS
+
 #include "Encoder/Encoder.h"
 
 #define IMU_PUBLISH_RATE 10 //hz
 #define VEL_PUBLISH_RATE 10 //hz
 #define COMMAND_RATE 10 //hz
-#define DEBUG_RATE 1000 //miliseconds 1000=1sec
+#define ENCODER_RATE 10 //hz
 
 typedef struct
 {
@@ -118,7 +137,7 @@ unsigned long previous_command_time = 0;
 unsigned long previous_control_time = 0;
 unsigned long publish_vel_time = 0;
 unsigned long previous_imu_time = 0;
-unsigned long previous_debug_time = 0;
+unsigned long previous_encoder_time = 0;
 
 bool is_first = true;
 
@@ -128,15 +147,27 @@ float Ki = k_i;
 char buffer[50];
 
 ros::NodeHandle nh;
+ros::NodeHandle nh_private_("~");
 
+// ROS subscriber msgs
 ros::Subscriber<geometry_msgs::Twist> cmd_sub("cmd_vel", command_callback);
 ros::Subscriber<lino_pid::linoPID> pid_sub("pid", pid_callback);
 
+// ROS imu publishers msgs
 ros_arduino_msgs::RawImu raw_imu_msg;
 ros::Publisher raw_imu_pub("raw_imu", &raw_imu_msg);
-
+// ROS velocity publishers msgs
 geometry_msgs::Vector3Stamped raw_vel_msg;
 ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
+// ROS encoder publishers msgs
+ros_arduino_msgs::Encoders encoders_msg;
+encoders_msg.header.frame_id = "wheelencoders";
+ros::Publisher pub_encoders("encoders", &encoders_msg);
+//TODO: get the above as params
+  //std::string baselink_frame;
+  //nh_private_.param<std::string>("baselink_frame",    baselink_frame, "base_link");
+                                //  launch_praramName,  varableName,    "default_value if not defined"
+
 
 void setup()
 {
@@ -152,6 +183,7 @@ void setup()
   nh.subscribe(cmd_sub);
   nh.advertise(raw_vel_pub);
   nh.advertise(raw_imu_pub);
+  nh.advertise(pub_encoders);
 
   while (!nh.connected())
   {
@@ -204,37 +236,40 @@ void loop()
     drive_robot(left_motor.pwm, right_motor.pwm);
   }
 
-  
+
   //this block publishes the IMU data based on defined rate
   if ((millis() - previous_imu_time) >= (1000 / IMU_PUBLISH_RATE))
   {
     //sanity check if the IMU exits
     if (is_first)
     {
-      check_imu();
+    check_imu();
     }
     else
     {
-      //publish the IMU data
-      publish_imu();
+    //publish the IMU data
+    publish_imu();
     }
     previous_imu_time = millis();
   }
- 
-  //this block displays the encoder readings. change DEBUG to 0 if you don't want to display
-  if(DEBUG)
+  
+  //this block publishes the encoder readings. change DEBUG to 0 if you don't want to display
+  if ((millis() - previous_encoder_time) >= (1000 / ENCODER_RATE))
   {
-    if ((millis() - previous_debug_time) >= (1000 / DEBUG_RATE))
-    {
-      sprintf (buffer, "Encoder Left: %d", left_encoder.read());
-      //TODO: change to ns.logdebug - http://wiki.ros.org/rosserial/Overview/Logging
-      nh.loginfo(buffer);
-      sprintf (buffer, "Encoded Right: %d", right_encoder.read()
-      
-      );
+
+      if(DEBUG)
+      {
+      sprintf (buffer, "Encoded Right: %d", right_encoder.read());
       nh.logdebug(buffer);
-      previous_debug_time = millis();
-    }
+      sprintf (buffer, "Encoder Left: %d", left_encoder.read());
+      nh.loginfo(buffer);
+      //TODO: change above to ns.logdebug - http://wiki.ros.org/rosserial/Overview/Logging
+      }
+      encoders_msg.left = left_encoder.read();
+      encoders_msg.right = right_encoder.read()
+      encoders_msg.header.stamp = nh.now();
+      pub_encoders.publish(&encoders_msg);    
+      previous_encoder_time = millis();
   }
 
   //call all the callbacks waiting to be called
