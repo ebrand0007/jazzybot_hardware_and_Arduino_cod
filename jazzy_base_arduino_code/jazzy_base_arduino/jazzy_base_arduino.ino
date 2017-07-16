@@ -38,6 +38,8 @@
  
  */
 
+//VERSION Jul 16 2017 v1.0.1 - Addded encoder ros messages
+
 /* Publishing Encoder PID: 
  *  https://github.com/tonybaltovski/ros_arduino/blob/indigo-devel/ros_arduino_base/firmware/two_wheel_base/two_wheel_base.ino
 */
@@ -147,7 +149,7 @@ float Ki = k_i;
 char buffer[50];
 
 ros::NodeHandle nh;
-ros::NodeHandle nh_private_("~");
+//ros::NodeHandle nh_private_("~");
 
 // ROS subscriber msgs
 ros::Subscriber<geometry_msgs::Twist> cmd_sub("cmd_vel", command_callback);
@@ -161,7 +163,7 @@ geometry_msgs::Vector3Stamped raw_vel_msg;
 ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
 // ROS encoder publishers msgs
 ros_arduino_msgs::Encoders encoders_msg;
-encoders_msg.header.frame_id = "wheelencoders";
+//encoders_msg.header.frame_id = "wheelencoders";
 ros::Publisher pub_encoders("encoders", &encoders_msg);
 //TODO: get the above as params
   //std::string baselink_frame;
@@ -266,7 +268,7 @@ void loop()
       //TODO: change above to ns.logdebug - http://wiki.ros.org/rosserial/Overview/Logging
       }
       encoders_msg.left = left_encoder.read();
-      encoders_msg.right = right_encoder.read()
+      encoders_msg.right = right_encoder.read();
       encoders_msg.header.stamp = nh.now();
       pub_encoders.publish(&encoders_msg);    
       previous_encoder_time = millis();
