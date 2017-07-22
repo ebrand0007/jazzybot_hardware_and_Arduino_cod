@@ -38,7 +38,11 @@
  
  */
 
-//VERSION Jul 16 2017 v1.0.1 - Addded encoder ros messages
+//Changelog Jul 16 2017 - Addded encoder ros messages
+
+
+//Version
+const String firmware_version = "Arduino Firmware Version: 2017-July-22";
 
 /* Publishing Encoder PID: 
  *  https://github.com/tonybaltovski/ros_arduino/blob/indigo-devel/ros_arduino_base/firmware/two_wheel_base/two_wheel_base.ino
@@ -68,6 +72,9 @@
 
 //header for cmdDiff velocity messages
 #include <ros_arduino_msgs/CmdDiffVel.h>
+
+//JointState Messages
+#include <sensor_msgs/JointState.h>
 
 //header file for cmd_subscribing to "cmd_vel"
 //#include "ros_lib/geometry_msgs/Twist.h"
@@ -157,19 +164,35 @@ ros::Subscriber<lino_pid::linoPID> pid_sub("pid", pid_callback);
 
 // ROS imu publishers msgs
 ros_arduino_msgs::RawImu raw_imu_msg;
+//raw_imu_msg.header.frame_id = "linoimu_link";
 ros::Publisher raw_imu_pub("raw_imu", &raw_imu_msg);
 // ROS velocity publishers msgs
 geometry_msgs::Vector3Stamped raw_vel_msg;
+//raw_imu_msg.header.frame_id = "linobase_link";
 ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
 // ROS encoder publishers msgs
 ros_arduino_msgs::Encoders encoders_msg;
-//encoders_msg.header.frame_id = "wheelencoders";
-ros::Publisher pub_encoders("encoders", &encoders_msg);
-//TODO: get the above as params
-  //std::string baselink_frame;
-  //nh_private_.param<std::string>("baselink_frame",    baselink_frame, "base_link");
-                                //  launch_praramName,  varableName,    "default_value if not defined"
 
+ros::Publisher pub_encoders("encoders", &encoders_msg);
+
+//Joint state publiser
+sensor_msgs::JointState lino_joint_state;
+/* JointState details
+  name[i]: '<component_id>' of i-th joint in message value arrays.
+  position[i]: position of joint i rad
+  velocity[i]: velocity of joint i in rad/s
+  effort[i]: effort applied in joint i in Nm
+
+  calculate radian position based on endocer ticks:
+    Example: https://github.com/uos/kurt_driver/blob/kinetic/kurt_base/src/kurt_base.cc#L162
+             http://answers.ros.org/question/185245/sensor_msgsjointstate-on-arduino/
+
+  calculate velocity based on incoder tick and encoder time:
+    Example: http://wiki.ros.org/navigation/Tutorials/RobotSetup/Odom#CA-e6fba4e92077b8226b57e9a62abdb695f9f5a84f_72
+*/
+float lino_joint_state_pos[2]; /// stores arduino time
+float lino_joint_state_vel[2];
+float lino_joint_state_eff[2];
 
 void setup()
 {
@@ -183,9 +206,26 @@ void setup()
   nh.getHardware()->setBaud(57600);
   nh.subscribe(pid_sub);
   nh.subscribe(cmd_sub);
+
+  encoders_msg.header.frame_id = "lino_wheelencoders";
   nh.advertise(raw_vel_pub);
   nh.advertise(raw_imu_pub);
   nh.advertise(pub_encoders);
+  
+  lino_joint_state.header.frame_id = "test_frameid";
+  lino_joint_state.header.stamp = nh.now();
+  lino_joint_state.name_length = 2; //2 wheel joints for all of these
+  lino_joint_state.velocity_length = 2;
+  lino_joint_state.position_length = 2;
+  lino_joint_state.effort_length =  2;
+  
+  lino_joint_state.name[0] = "right_wheel_joint"; //array element 0 name
+  lino_joint_state.name[1] = "left_wheel_joint"; //array element 1 name
+  lino_joint_state.name_length = 2; //2 wheel joints for all of these
+  lino_joint_state.velocity = lino_joint_state_pos; //array of float 
+  lino_joint_state.position = lino_joint_state_vel; //array of float
+  lino_joint_state.effort =  lino_joint_state_eff;  //array of float
+  
 
   while (!nh.connected())
   {
@@ -193,6 +233,7 @@ void setup()
   }
   nh.loginfo("Connected to microcontroller...");
   nh.loginfo("ROS Arduino IMU started.");
+  nh.loginfo(firmware_version.c_str());
   
 #if defined(WIRE_T3)
   Wire.begin(I2C_MASTER, 0x00, I2C_PINS_18_19, I2C_PULLUP_INT, I2C_RATE_400);
@@ -373,7 +414,7 @@ void publish_linear_velocity(unsigned long time)
   raw_vel_msg.vector.y = 0.00;
   raw_vel_msg.vector.z = double(time) / 1000;
   //publish raw_vel_msg object to ROS
-raw_vel_pub.publish(&raw_vel_msg); 
+  raw_vel_pub.publish(&raw_vel_msg); 
   nh.spinOnce();
 }
 
