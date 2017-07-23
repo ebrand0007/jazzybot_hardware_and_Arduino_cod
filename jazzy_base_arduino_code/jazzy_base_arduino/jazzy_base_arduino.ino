@@ -174,11 +174,12 @@ geometry_msgs::Vector3Stamped raw_vel_msg;
 ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
 // ROS encoder publishers msgs
 ros_arduino_msgs::Encoders encoders_msg;
-
 ros::Publisher pub_encoders("encoders", &encoders_msg);
 
 //Joint state publiser
-sensor_msgs::JointState lino_joint_state;
+sensor_msgs::JointState lino_joint_state_msg;
+ros::Publisher pub_jointstates("wheel_jointstate", &lino_joint_state_msg);
+
 /* JointState details
   name[i]: '<component_id>' of i-th joint in message value arrays.
   position[i]: position of joint i rad
@@ -214,20 +215,19 @@ void setup()
   nh.advertise(raw_imu_pub);
   nh.advertise(pub_encoders);
   
-  lino_joint_state.header.frame_id = "test_frameid";
-  lino_joint_state.header.stamp = nh.now();
-  lino_joint_state.name_length = 2; //2 wheel joints for all of these
-  lino_joint_state.velocity_length = 2;
-  lino_joint_state.position_length = 2;
-  lino_joint_state.effort_length =  2;
-  
-  lino_joint_state.name[0] = "left_wheel_joint"; //array element 0 name
-  lino_joint_state.name[1] = "right_wheel_joint"; //array element 1 name
-  lino_joint_state.name_length = 2; //2 wheel joints for all of these
-  lino_joint_state.velocity = lino_joint_state_pos; //array of float 
-  lino_joint_state.position = lino_joint_state_vel; //array of float
-  lino_joint_state.effort =  lino_joint_state_eff;  //array of float
-  
+  lino_joint_state_msg.header.frame_id = "test_frameid";
+  lino_joint_state_msg.header.stamp = nh.now();
+  lino_joint_state_msg.name_length = 2; //2 wheel joints for all of these
+  lino_joint_state_msg.velocity_length = 2;
+  lino_joint_state_msg.position_length = 2;
+  lino_joint_state_msg.effort_length =  2;
+  lino_joint_state_msg.name[0] = "left_wheel_joint"; //array element 0 name
+  lino_joint_state_msg.name[1] = "right_wheel_joint"; //array element 1 name
+  lino_joint_state_msg.name_length = 2; //2 wheel joints for all of these
+  lino_joint_state_msg.velocity = lino_joint_state_pos; //array of float 
+  lino_joint_state_msg.position = lino_joint_state_vel; //array of float
+  lino_joint_state_msg.effort =  lino_joint_state_eff;  //array of float
+  nh.advertise(pub_jointstates);
 
   while (!nh.connected())
   {
@@ -332,14 +332,15 @@ void loop()
       //calculate 1 tick=how many radians
       //one_encodertick_in_radians = 2 pi r / ticks_per_wheel_rotation //Or suing diameter:
       long one_encodertick_in_radians = ( pi * wheel_diameter ) / ticks_per_wheel_rotation;
-      lino_joint_state.position[0]= one_encodertick_in_radians * remainder_left_ticks; //joint state position in radians 
-      lino_joint_state.position[1]=one_encodertick_in_radians * remainder_right_ticks; //joint state position in radians
+      lino_joint_state_msg.position[0]= one_encodertick_in_radians * remainder_left_ticks; //joint state position in radians 
+      lino_joint_state_msg.position[1]=one_encodertick_in_radians * remainder_right_ticks; //joint state position in radians
       
       
       //TODO: calculate velocity in radian/sec & publish to lino_joint_state.velocity
     
       //No CANDO: calualre effort to publish to lino_joint_state.effort
-    
+
+      pub_jointstates.publish(&lino_joint_state_msg);
       previous_jointstate_time = millis();
   }
   
