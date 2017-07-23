@@ -38,11 +38,15 @@
  
  */
 
-//Changelog Jul 16 2017 - Addded encoder ros messages
-
+/*Changelog: 
+ *   Jul 16 2017 -        Addded encoder ros publisher
+ *   Jul 23 2017 -        Added jointstate ros publiser
+ *   
+ *   
+*/
 
 //Version
-const String firmware_version = "Arduino Firmware Version: 2017-July-23-v1.0";
+const String firmware_version = "Arduino Firmware Version: 2017-Jul-23-v1.01";
 
 /* Publishing Encoder PID: 
  *  https://github.com/tonybaltovski/ros_arduino/blob/indigo-devel/ros_arduino_base/firmware/two_wheel_base/two_wheel_base.ino
@@ -121,6 +125,7 @@ typedef struct
   double current_rpm; //current speed of the motor
   double required_rpm;//desired speed of the motor 
   int pwm;//desired speed of the motor mapped to PWM
+  double radians_per_sec; // speed of the motor in radians per sec = rpm * two_pi/60
 }
 Motor;
 
@@ -200,7 +205,7 @@ float lino_joint_state_eff[2] = { 0.0,0.0 };
     Example: http://wiki.ros.org/navigation/Tutorials/RobotSetup/Odom#CA-e6fba4e92077b8226b57e9a62abdb695f9f5a84f_72
 */
 
-
+//TODO:move this up in the code
 float ticks_per_wheel_rotation = encoder_pulse * gear_ratio; //number of encoder tics per wheel rotation //TODO:move this out of loop
 //float one_encodertick_in_radians = ( pi * wheel_diameter ) / ticks_per_wheel_rotation;
 float one_encodertick_in_radians = two_pi / ticks_per_wheel_rotation;
@@ -228,7 +233,7 @@ void setup()
   nh.advertise(raw_imu_pub);
   nh.advertise(pub_encoders);
 
-
+  //Joint States
   lino_joint_state_msg.header.stamp = nh.now();
   lino_joint_state_msg.name_length = 2; //2 wheel joints for all of these
   lino_joint_state_msg.position_length = 2;
@@ -349,11 +354,8 @@ void loop()
   //this block publishes the joint_state position and angular velocity_length
   if ((millis() - previous_jointstate_time) >= (1000 / JOINTSTATE_PUB_RATE ))
   {
-      //Uncomment these
-      
       long left_motor_total_tics=left_encoder.read(); //long
-      long right_motor_total_tics=right_encoder.read();
-      
+      long right_motor_total_tics=right_encoder.read(); 
       //calculate radians and publish to lino_joint_state.position
       //ticks wrap around, so only get the remainder of the ticks
       //float remainder_left_ticks =left_motor_total_tics-(left_motor_total_tics/ticks_per_wheel_rotation)*ticks_per_wheel_rotation;
@@ -367,14 +369,22 @@ void loop()
       }
       lino_joint_state_msg.position[0]=one_encodertick_in_radians * remainder_left_ticks; //joint state position in radians 
       lino_joint_state_msg.position[1]=one_encodertick_in_radians * remainder_right_ticks; //joint state position in radians
-      
+      lino_joint_state_msg.velocity[0]=left_motor.radians_per_sec; //TODO: this is calculated when left_motor.read() is called, timming may be off
+      lino_joint_state_msg.velocity[1]=right_motor.radians_per_sec; //TODO: this is calculated when left_motor.read() is called, timming may be off
       
       //TODO: calculate velocity in radian/sec & publish to lino_joint_state.velocity
+      
     
-      //No CANDO: calualre effort to publish to lino_joint_state.effort
+      //No CANDO: calualate effort and to publish to lino_joint_state.effort
 
+
+      //Publis Joint States
+      lino_joint_state_msg.header.stamp = nh.now();
       pub_jointstates.publish(&lino_joint_state_msg);
-      //previous_jointstate_time = millis();
+      pub_jointstates.publish(&lino_joint_state_msg);
+
+      
+      previous_jointstate_time = millis();
   }
   
   //call all the callbacks waiting to be called
@@ -457,6 +467,7 @@ void read_motor_rpm_(Motor * mot, long current_encoder_ticks, unsigned long dt )
   double delta_ticks = current_encoder_ticks - mot->previous_encoder_ticks;
   //calculate wheel's speed (RPM)
   mot->current_rpm = (delta_ticks / double(encoder_pulse * gear_ratio)) * dt;
+  mot->radians_per_sec = (mot->current_rpm * two_pi)/60;
   mot->previous_encoder_ticks = current_encoder_ticks;
 }
 
