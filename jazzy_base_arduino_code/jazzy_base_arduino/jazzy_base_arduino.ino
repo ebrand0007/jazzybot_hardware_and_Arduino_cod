@@ -221,8 +221,8 @@ void setup()
   lino_joint_state.position_length = 2;
   lino_joint_state.effort_length =  2;
   
-  lino_joint_state.name[0] = "right_wheel_joint"; //array element 0 name
-  lino_joint_state.name[1] = "left_wheel_joint"; //array element 1 name
+  lino_joint_state.name[0] = "left_wheel_joint"; //array element 0 name
+  lino_joint_state.name[1] = "right_wheel_joint"; //array element 1 name
   lino_joint_state.name_length = 2; //2 wheel joints for all of these
   lino_joint_state.velocity = lino_joint_state_pos; //array of float 
   lino_joint_state.position = lino_joint_state_vel; //array of float
@@ -324,12 +324,18 @@ void loop()
       long left_motor_total_tics=left_encoder.read(); //long
       long right_motor_total_tics=right_encoder.read();
       
-      //TODO: calculate radians and publish to lino_joint_state.position
-      
-      //ticks wrap around, so get the remainder of the ticks
+      //calculate radians and publish to lino_joint_state.position
+      //ticks wrap around, so only get the remainder of the ticks
       int remainder_left_ticks =int(left_motor_total_tics)-int(left_motor_total_tics)/ticks_per_wheel_rotation*ticks_per_wheel_rotation;
       int remainder_right_ticks =int(right_motor_total_tics)-int(right_motor_total_tics)/ticks_per_wheel_rotation*ticks_per_wheel_rotation;
-    
+      //radian(r) is the radius of a circle.   2 pi radians(r) = 360 deg
+      //calculate 1 tick=how many radians
+      //one_encodertick_in_radians = 2 pi r / ticks_per_wheel_rotation //Or suing diameter:
+      long one_encodertick_in_radians = ( pi * wheel_diameter ) / ticks_per_wheel_rotation;
+      lino_joint_state.position[0]= one_encodertick_in_radians * remainder_left_ticks; //joint state position in radians 
+      lino_joint_state.position[1]=one_encodertick_in_radians * remainder_right_ticks; //joint state position in radians
+      
+      
       //TODO: calculate velocity in radian/sec & publish to lino_joint_state.velocity
     
       //No CANDO: calualre effort to publish to lino_joint_state.effort
@@ -372,8 +378,7 @@ void command_callback( const geometry_msgs::Twist& cmd_msg)
   //calculate and assign desired RPM for each motor
   left_motor.required_rpm = (linear_vel_mins / circumference) - (tangential_vel / circumference);
   right_motor.required_rpm = (linear_vel_mins / circumference) + (tangential_vel / circumference);
-  //radian(r) is the radius of a circle.   2 pi radians(r) = 360 deg
-  //TODO: calculate 1 tick=how many radians
+
 }
 
 void drive_robot( int command_left, int command_right)
