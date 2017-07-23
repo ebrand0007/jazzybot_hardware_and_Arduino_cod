@@ -9,7 +9,8 @@ Comile the ino file in IDE
   - export CPATH="./libraries/ros_lib"
        /home/ebrand/Documents/jazzy-robot/code/jazzybot/Arduino/jazzybot_hardware_and_Arduino_code/jazzy_base_arduino_code:.
   - arduino jazzy_base_arduino.ino
-  - built file will be in /tmp with .hex suffex
+      Sketch -> Export compiled binary
+     -  in current directory with .hex suffex. Upload the one with out the bootloader
 
 
 
@@ -22,5 +23,6 @@ On pine64(aarch64) host with arduino attached:
   - yum install avrdude: http://www.nongnu.org/avrdude
   - upload it:
        avrdude -p m2560 -cwiring -P /dev/linobase -b 115200 -F -U flash:w:/tmp/jazzy_base_arduino.ino.hex -D
+       #only need one without bootloader after origional flash
 
 

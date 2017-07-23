@@ -42,7 +42,7 @@
 
 
 //Version
-const String firmware_version = "Arduino Firmware Version: 2017-July-22";
+const String firmware_version = "Arduino Firmware Version: 2017-July-23-v1.0";
 
 /* Publishing Encoder PID: 
  *  https://github.com/tonybaltovski/ros_arduino/blob/indigo-devel/ros_arduino_base/firmware/two_wheel_base/two_wheel_base.ino
@@ -60,6 +60,9 @@ const String firmware_version = "Arduino Firmware Version: 2017-July-22";
 
 //Version of code
 #define ARDUINO_CODE_VERSION 
+
+//for dtostr() string handeling
+#include <stdlib.h>
 
 //Note: Must export CPATH="./libraries/ros_lib" to use these local libraries"
 #include <ros.h>
@@ -179,7 +182,10 @@ ros::Publisher pub_encoders("encoders", &encoders_msg);
 //Joint state publiser
 sensor_msgs::JointState lino_joint_state_msg;
 ros::Publisher pub_jointstates("wheel_jointstate", &lino_joint_state_msg);
-
+char *lino_joint_state_name[2]= {"left_wheel_joint","right_wheel_joint"};
+float lino_joint_state_pos[2] = { 0.0,0.0 }; 
+float lino_joint_state_vel[2] = { 0.0,0.0 };
+float lino_joint_state_eff[2] = { 0.0,0.0 };
 /* JointState details
   name[i]: '<component_id>' of i-th joint in message value arrays.
   position[i]: position of joint i rad
@@ -193,9 +199,16 @@ ros::Publisher pub_jointstates("wheel_jointstate", &lino_joint_state_msg);
   calculate velocity based on incoder tick and encoder time:
     Example: http://wiki.ros.org/navigation/Tutorials/RobotSetup/Odom#CA-e6fba4e92077b8226b57e9a62abdb695f9f5a84f_72
 */
-float lino_joint_state_pos[2]; /// stores arduino time
-float lino_joint_state_vel[2];
-float lino_joint_state_eff[2];
+
+
+float ticks_per_wheel_rotation = encoder_pulse * gear_ratio; //number of encoder tics per wheel rotation //TODO:move this out of loop
+//float one_encodertick_in_radians = ( pi * wheel_diameter ) / ticks_per_wheel_rotation;
+float one_encodertick_in_radians = two_pi / ticks_per_wheel_rotation;
+//radian(r) is the radius of a circle.   2 pi radians(r) = 360 deg
+    //calculate 1 tick=how many radians
+    //one_encodertick_in_radians = 2 pi r / ticks_per_wheel_rotation //or pi diameter /ticks_per_wheel_rotation
+
+
 
 void setup()
 {
@@ -214,21 +227,22 @@ void setup()
   nh.advertise(raw_vel_pub);
   nh.advertise(raw_imu_pub);
   nh.advertise(pub_encoders);
-  
-  lino_joint_state_msg.header.frame_id = "test_frameid";
+
+
   lino_joint_state_msg.header.stamp = nh.now();
   lino_joint_state_msg.name_length = 2; //2 wheel joints for all of these
-  lino_joint_state_msg.velocity_length = 2;
   lino_joint_state_msg.position_length = 2;
+  lino_joint_state_msg.velocity_length = 2;
   lino_joint_state_msg.effort_length =  2;
-  lino_joint_state_msg.name[0] = "left_wheel_joint"; //array element 0 name
-  lino_joint_state_msg.name[1] = "right_wheel_joint"; //array element 1 name
-  lino_joint_state_msg.name_length = 2; //2 wheel joints for all of these
+  lino_joint_state_msg.header.frame_id = "test_frameid";
+  lino_joint_state_msg.name = lino_joint_state_name;
+  //Uncomment these
   lino_joint_state_msg.velocity = lino_joint_state_pos; //array of float 
   lino_joint_state_msg.position = lino_joint_state_vel; //array of float
   lino_joint_state_msg.effort =  lino_joint_state_eff;  //array of float
   nh.advertise(pub_jointstates);
-
+  
+  
   while (!nh.connected())
   {
     nh.spinOnce();
@@ -236,6 +250,21 @@ void setup()
   nh.loginfo("Connected to microcontroller...");
   nh.loginfo("ROS Arduino IMU started.");
   nh.loginfo(firmware_version.c_str());
+  char s_float[20];  //convert float to string, as sprintf %f doesnt work
+  dtostrf(ticks_per_wheel_rotation, 10, 4, s_float);
+      /*
+        where
+        floatvar   float variable
+        StringLengthIncDecimalPoint   This is the length of the string that will be created
+        numVarsAfterDecimal   The number of digits after the deimal point to print
+        charbuf   the array to store the results
+      */
+  sprintf (buffer, "Encoder ticks_per_wheel_rotation:%s",s_float);
+  nh.loginfo(buffer);
+  
+  dtostrf(one_encodertick_in_radians, 10, 4, s_float );
+  sprintf (buffer, "one_encodertick_in_radians: %s", s_float);
+  nh.loginfo(buffer);
   
 #if defined(WIRE_T3)
   Wire.begin(I2C_MASTER, 0x00, I2C_PINS_18_19, I2C_PULLUP_INT, I2C_RATE_400);
@@ -320,19 +349,23 @@ void loop()
   //this block publishes the joint_state position and angular velocity_length
   if ((millis() - previous_jointstate_time) >= (1000 / JOINTSTATE_PUB_RATE ))
   {
-      float ticks_per_wheel_rotation = encoder_pulse * gear_ratio; //number of encoder tics per wheel rotation
+      //Uncomment these
+      
       long left_motor_total_tics=left_encoder.read(); //long
       long right_motor_total_tics=right_encoder.read();
       
       //calculate radians and publish to lino_joint_state.position
       //ticks wrap around, so only get the remainder of the ticks
-      int remainder_left_ticks =int(left_motor_total_tics)-int(left_motor_total_tics)/ticks_per_wheel_rotation*ticks_per_wheel_rotation;
-      int remainder_right_ticks =int(right_motor_total_tics)-int(right_motor_total_tics)/ticks_per_wheel_rotation*ticks_per_wheel_rotation;
-      //radian(r) is the radius of a circle.   2 pi radians(r) = 360 deg
-      //calculate 1 tick=how many radians
-      //one_encodertick_in_radians = 2 pi r / ticks_per_wheel_rotation //Or suing diameter:
-      long one_encodertick_in_radians = ( pi * wheel_diameter ) / ticks_per_wheel_rotation;
-      lino_joint_state_msg.position[0]= one_encodertick_in_radians * remainder_left_ticks; //joint state position in radians 
+      //float remainder_left_ticks =left_motor_total_tics-(left_motor_total_tics/ticks_per_wheel_rotation)*ticks_per_wheel_rotation;
+      int remainder_left_ticks  =int(left_motor_total_tics)-int((left_motor_total_tics)/ticks_per_wheel_rotation)*ticks_per_wheel_rotation;
+      int remainder_right_ticks =int(right_motor_total_tics)-int((right_motor_total_tics)/ticks_per_wheel_rotation)*ticks_per_wheel_rotation;
+      if (DEBUG) {
+        sprintf (buffer, "remainder_left_ticks: %d", remainder_left_ticks);
+        nh.loginfo(buffer);
+        sprintf (buffer, "remainder_right_ticks: %d", remainder_right_ticks);
+        nh.loginfo(buffer);
+      }
+      lino_joint_state_msg.position[0]=one_encodertick_in_radians * remainder_left_ticks; //joint state position in radians 
       lino_joint_state_msg.position[1]=one_encodertick_in_radians * remainder_right_ticks; //joint state position in radians
       
       
@@ -341,7 +374,7 @@ void loop()
       //No CANDO: calualre effort to publish to lino_joint_state.effort
 
       pub_jointstates.publish(&lino_joint_state_msg);
-      previous_jointstate_time = millis();
+      //previous_jointstate_time = millis();
   }
   
   //call all the callbacks waiting to be called
