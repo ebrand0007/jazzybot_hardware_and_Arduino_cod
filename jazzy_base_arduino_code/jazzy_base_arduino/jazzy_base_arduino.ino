@@ -108,6 +108,7 @@ const String firmware_version = "Arduino Firmware Version: 2017-July-22";
 #define VEL_PUBLISH_RATE 10 //hz
 #define COMMAND_RATE 10 //hz
 #define ENCODER_RATE 10 //hz
+#define JOINTSTATE_PUB_RATE 10 //hz
 
 typedef struct
 {
@@ -147,6 +148,7 @@ unsigned long previous_control_time = 0;
 unsigned long publish_vel_time = 0;
 unsigned long previous_imu_time = 0;
 unsigned long previous_encoder_time = 0;
+unsigned long previous_jointstate_time = 0;
 
 bool is_first = true;
 
@@ -315,6 +317,26 @@ void loop()
       previous_encoder_time = millis();
   }
 
+  //this block publishes the joint_state position and angular velocity_length
+  if ((millis() - previous_jointstate_time) >= (1000 / JOINTSTATE_PUB_RATE ))
+  {
+      float ticks_per_wheel_rotation = encoder_pulse * gear_ratio; //number of encoder tics per wheel rotation
+      long left_motor_total_tics=left_encoder.read(); //long
+      long right_motor_total_tics=right_encoder.read();
+      
+      //TODO: calculate radians and publish to lino_joint_state.position
+      
+      //ticks wrap around, so get the remainder of the ticks
+      int remainder_left_ticks =int(left_motor_total_tics)-int(left_motor_total_tics)/ticks_per_wheel_rotation*ticks_per_wheel_rotation;
+      int remainder_right_ticks =int(right_motor_total_tics)-int(right_motor_total_tics)/ticks_per_wheel_rotation*ticks_per_wheel_rotation;
+    
+      //TODO: calculate velocity in radian/sec & publish to lino_joint_state.velocity
+    
+      //No CANDO: calualre effort to publish to lino_joint_state.effort
+    
+      previous_jointstate_time = millis();
+  }
+  
   //call all the callbacks waiting to be called
   nh.spinOnce();
 }
@@ -350,6 +372,8 @@ void command_callback( const geometry_msgs::Twist& cmd_msg)
   //calculate and assign desired RPM for each motor
   left_motor.required_rpm = (linear_vel_mins / circumference) - (tangential_vel / circumference);
   right_motor.required_rpm = (linear_vel_mins / circumference) + (tangential_vel / circumference);
+  //radian(r) is the radius of a circle.   2 pi radians(r) = 360 deg
+  //TODO: calculate 1 tick=how many radians
 }
 
 void drive_robot( int command_left, int command_right)
