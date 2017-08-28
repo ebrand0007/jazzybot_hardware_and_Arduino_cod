@@ -1,0 +1,15 @@
+http://dougsbots.blogspot.com/2012/06/custom-ros-messages-with.html
+
+
+Building from this directory:
+
+catkin_make_isolated
+catkin_make install
+cd install
+. setup.bash
+rosrun rosserial_arduino make_libraries.py [$install_Dir normally ~/Arduino/Libraries]
+  #will install to ~/Arduino/libraries/ros_lib/jbot2_msgs/jbot2_pwm.h
+
+cp install/include/jbot2_msgs/jbot2_pwm.h into same dir as arduino ino file
+# Alternately we create full and rpm  package for this into the jbot2 code
+

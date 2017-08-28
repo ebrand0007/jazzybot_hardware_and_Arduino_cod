@@ -45,7 +45,11 @@
  *     -Goal: get Arduino to process interupts faster, and only publish minimal encoder and raw_vel_cmd topics
  *     - added jazzy_base_arduino_code/jazzy_base_arduino-v2.x sub dir to work on new code base
  *     - Last compatiable codebase for linobot/jbot was git tag 2017-Jul-23-v1.01 
- *      -   using jazzy_base_arduino_code/jazzy_base_arduino subdir
+ *     -   using jazzy_base_arduino_code/jazzy_base_arduino subdir
+ *     - Codechange: 
+ *     -   drive_robot_raw_callback( int pwm_left, int left_timeout, int pwm_right, int right_timeout
+ *     -       timeout params are oh-crap timeout parms to stop motors after timeout is exceed, to stop motors after certain after a threashold, 
+ *     -       in event serial connection lost sync
  *   
  *   
 */
@@ -157,6 +161,7 @@ void pid_callback( const lino_pid::linoPID& pid);
 unsigned long lastMilli = 0;       
 unsigned long lastMilliPub = 0;
 unsigned long previous_command_time = 0;
+unsigned long previous_drive_robot_raw_callback_time =0; //timer raw_command_callback timeout threashold
 unsigned long previous_control_time = 0;
 unsigned long publish_vel_time = 0;
 unsigned long previous_imu_time = 0;
@@ -407,6 +412,7 @@ void pid_callback( const lino_pid::linoPID& pid)
   nh.loginfo(buffer);
 }
 
+
 void command_callback( const geometry_msgs::Twist& cmd_msg)
 {
   //callback function every time linear and angular speed is received from 'cmd_vel' topic
@@ -430,7 +436,51 @@ void command_callback( const geometry_msgs::Twist& cmd_msg)
 
 }
 
-void drive_robot( int command_left, int command_right)
+/* call back for wringing rew pwm signals to motors
+ *   pwm_left, pwm_right:                int _/- raw 1-255(or 128) values to send to to pins
+ *   right_timeout, left_timeout:        milliseconds timeout threshhold(oh-crap) to reset motors back to 0 if now new pwm values are recieved
+ * 
+ */
+
+void drive_robot_raw_callback( int pwm_left, int left_timeout, int pwm_right, int right_timeout )
+{
+  //this functions spins the left and right wheel based on a defined speed in PWM  
+  //change left motor direction
+  
+  previous_drive_robot_raw_callback_time=millis();
+  //TOD0: write timmer evernt to set l/r  motor PWM 0 (stop) after cmd_left_timeout cmd_right_timeout is exceeded
+  
+  
+  //forward
+  if (pwm_left >= 0)
+  {
+    digitalWrite(left_motor_direction, HIGH);
+  }
+  //reverse
+  else
+  {
+    digitalWrite(left_motor_direction, LOW);
+  }
+  //spin the motor
+  analogWrite(left_motor_pwm, abs(pwm_left));
+  
+  //change right motor direction
+  //forward
+  if (pwm_right >= 0)
+  {
+    digitalWrite(right_motor_direction, HIGH);
+  }
+  //reverse
+  else
+  {
+    digitalWrite(right_motor_direction, LOW);
+  }
+  //spin the motor
+  analogWrite(right_motor_pwm, abs(pwm_right));
+}
+
+
+void drive_robot( int command_left, int pwm_right)
 {
   //this functions spins the left and right wheel based on a defined speed in PWM  
   //change left motor direction
