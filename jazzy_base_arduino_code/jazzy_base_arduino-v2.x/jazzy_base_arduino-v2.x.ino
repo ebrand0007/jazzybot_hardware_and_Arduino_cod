@@ -79,6 +79,7 @@ const String firmware_version = "Arduino Firmware Version: jazzy_base_arduino-v2
 
 //Note: Must export CPATH="./libraries/ros_lib" to use these local libraries"
 #include <ros.h>
+#include <ros/time.h>
 
 //header file for publishing "rpm"
 #include <geometry_msgs/Vector3Stamped.h>
@@ -96,14 +97,19 @@ const String firmware_version = "Arduino Firmware Version: jazzy_base_arduino-v2
 //#include "ros_lib/geometry_msgs/Twist.h"
 #include <geometry_msgs/Twist.h>
 
-//header file for pid server
+//header file for pid server TODO: remove this
 #include "linoPID.h"
+//TODO: do we need this?
+#include "lino_base_config.h"
+
+//header file for drive_robot_raw_callback
+#include "jbot2_msg/jbot2_pwm.h"
 
 //header files for imu
+#include "imu/imu_configuration.h"
 #include <ros_arduino_msgs/RawImu.h>
 #include <geometry_msgs/Vector3.h>
 
-#include <ros/time.h>
 
 #if defined(WIRE_T3)
 #include <i2c_t3.h>
@@ -111,13 +117,10 @@ const String firmware_version = "Arduino Firmware Version: jazzy_base_arduino-v2
 #include <Wire.h>
 #endif
 
-#include "imu/imu_configuration.h"
-#include "lino_base_config.h"
 
 //Pick one option below to use interupts or not
 #define ENCODER_OPTIMIZE_INTERRUPTS
 //#define ENCODER_DO_NOT_USE_INTERRUPTS
-
 #include "Encoder/Encoder.h"
 
 #define IMU_PUBLISH_RATE 10 //hz
@@ -157,6 +160,7 @@ void calculate_pwm(Motor * mot);
 //callback function prototypes
 void command_callback( const geometry_msgs::Twist& cmd_msg);
 void pid_callback( const lino_pid::linoPID& pid);
+void drive_robot_raw_callback (const jbot2_msg::jbot2_pwm& );
 
 unsigned long lastMilli = 0;       
 unsigned long lastMilliPub = 0;
@@ -193,6 +197,7 @@ ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
 // ROS encoder publishers msgs
 ros_arduino_msgs::Encoders encoders_msg;
 ros::Publisher pub_encoders("encoders", &encoders_msg);
+ros::Publisher pub_
 
 //Joint state publiser
 sensor_msgs::JointState lino_joint_state_msg;
@@ -442,7 +447,8 @@ void command_callback( const geometry_msgs::Twist& cmd_msg)
  * 
  */
 
-void drive_robot_raw_callback( int pwm_left, int left_timeout, int pwm_right, int right_timeout )
+//TODO: delete  void drive_robot_raw_callback( int pwm_left, int left_timeout, int pwm_right, int right_timeout )
+void drive_robot_raw_callback(const jbot2_msg::jbot2_pwm&)
 {
   //this functions spins the left and right wheel based on a defined speed in PWM  
   //change left motor direction
@@ -480,7 +486,7 @@ void drive_robot_raw_callback( int pwm_left, int left_timeout, int pwm_right, in
 }
 
 
-void drive_robot( int command_left, int pwm_right)
+void drive_robot( int command_left, int command_right)
 {
   //this functions spins the left and right wheel based on a defined speed in PWM  
   //change left motor direction
