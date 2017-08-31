@@ -102,8 +102,8 @@ const String firmware_version = "Arduino Firmware Version: jazzy_base_arduino-v2
 //TODO: do we need this?
 #include "lino_base_config.h"
 
-//header file for drive_robot_raw_callback
-#include "jbot2_msg/jbot2_pwm.h"
+//header file for drive_robot_raw_callback subscriber
+#include "jbot2_msgs/jbot2_pwm.h"
 
 //header files for imu
 #include "imu/imu_configuration.h"
@@ -157,10 +157,10 @@ void publish_linear_velocity(unsigned long);
 void read_motor_rpm_(Motor * mot, long current_encoder_ticks, unsigned long dt );
 void calculate_pwm(Motor * mot);
 
-//callback function prototypes
+//callback function prototypes for subscribers
 void command_callback( const geometry_msgs::Twist& cmd_msg);
 void pid_callback( const lino_pid::linoPID& pid);
-void drive_robot_raw_callback (const jbot2_msg::jbot2_pwm& );
+void drive_robot_raw_callback (const jbot2_msgs::jbot2_pwm& jbot2_pwm_msg);
 
 unsigned long lastMilli = 0;       
 unsigned long lastMilliPub = 0;
@@ -185,6 +185,9 @@ ros::NodeHandle nh;
 // ROS subscriber msgs
 ros::Subscriber<geometry_msgs::Twist> cmd_sub("cmd_vel", command_callback);
 ros::Subscriber<lino_pid::linoPID> pid_sub("pid", pid_callback);
+//ROS raw wheel pwm publiser messages
+//jbot2_msgs::jbot2_pwm jbot2_pwm_msg; //TODO: these are wrong, they need to be in form of Subscriber
+ros::Subscriber<jbot2_msgs::jbot2_pwm> sub_drive_robot_raw("raw_pwm",drive_robot_raw_callback);
 
 // ROS imu publishers msgs
 ros_arduino_msgs::RawImu raw_imu_msg;
@@ -197,7 +200,7 @@ ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
 // ROS encoder publishers msgs
 ros_arduino_msgs::Encoders encoders_msg;
 ros::Publisher pub_encoders("encoders", &encoders_msg);
-ros::Publisher pub_
+
 
 //Joint state publiser
 sensor_msgs::JointState lino_joint_state_msg;
@@ -240,28 +243,38 @@ void setup()
 
   nh.initNode();
   nh.getHardware()->setBaud(57600);
+  
+  //POS subscribers
   nh.subscribe(pid_sub);
   nh.subscribe(cmd_sub);
+  //Ros topoic for Raw pwm signasls to drive motors
+  nh.subscribe(sub_drive_robot_raw);
 
-  encoders_msg.header.frame_id = "lino_wheelencoders";
+  //ROS publishers
   nh.advertise(raw_vel_pub);
   nh.advertise(raw_imu_pub);
+
+  
+  //Raw Encoder Tick Messages from hardware
+  encoders_msg.header.frame_id = "lino_wheelencoders";
   nh.advertise(pub_encoders);
 
   //Joint States
+  lino_joint_state_msg.header.frame_id = "test_frameid";
+  lino_joint_state_msg.name = lino_joint_state_name;
   lino_joint_state_msg.header.stamp = nh.now();
-  lino_joint_state_msg.name_length = 2; //2 wheel joints for all of these
+  //Set array length for wheel joints
+  lino_joint_state_msg.name_length = 2; 
   lino_joint_state_msg.position_length = 2;
   lino_joint_state_msg.velocity_length = 2;
   lino_joint_state_msg.effort_length =  2;
-  lino_joint_state_msg.header.frame_id = "test_frameid";
-  lino_joint_state_msg.name = lino_joint_state_name;
-  //Uncomment these
+  //assign the arrays
   lino_joint_state_msg.velocity = lino_joint_state_pos; //array of float 
   lino_joint_state_msg.position = lino_joint_state_vel; //array of float
   lino_joint_state_msg.effort =  lino_joint_state_eff;  //array of float
   nh.advertise(pub_jointstates);
   
+
   
   while (!nh.connected())
   {
@@ -442,16 +455,21 @@ void command_callback( const geometry_msgs::Twist& cmd_msg)
 }
 
 /* call back for wringing rew pwm signals to motors
+ *  msg format:
  *   pwm_left, pwm_right:                int _/- raw 1-255(or 128) values to send to to pins
  *   right_timeout, left_timeout:        milliseconds timeout threshhold(oh-crap) to reset motors back to 0 if now new pwm values are recieved
  * 
- */
-
-//TODO: delete  void drive_robot_raw_callback( int pwm_left, int left_timeout, int pwm_right, int right_timeout )
-void drive_robot_raw_callback(const jbot2_msg::jbot2_pwm&)
+*/
+void drive_robot_raw_callback(const jbot2_msgs::jbot2_pwm& jbot2_pwm_msg)
 {
   //this functions spins the left and right wheel based on a defined speed in PWM  
   //change left motor direction
+  int pwm_left=jbot2_pwm_msg.left_pwm;
+  int pwm_right=jbot2_pwm_msg.right_pwm; 
+  int left_duration=jbot2_pwm_msg.left_timeout;
+  int right_duration=jbot2_pwm_msg.right_timeout;
+  //TODO: limit to -127 to 127 pwm signal?? or us it 255 plus direction bit?
+  
   
   previous_drive_robot_raw_callback_time=millis();
   //TOD0: write timmer evernt to set l/r  motor PWM 0 (stop) after cmd_left_timeout cmd_right_timeout is exceeded
