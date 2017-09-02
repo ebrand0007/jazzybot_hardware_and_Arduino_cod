@@ -17,3 +17,11 @@ rosrun rosserial_arduino make_libraries.py ~/Arduino/libraries
  install/include/jbot2_msgs/jbot2_pwm.h into same dir as arduino ino file
 # Alternately we create full and rpm  package for this into the jbot2 code
 
+#Manuaaly Testing publising to /raw_pwm
+#http://wiki.ros.org/ROS/YAMLCommandLine
+
+rostopic pub -r 10 /raw_pwm jbot2_msgs/jbot2_pwm -- '{stamp: now}' 200 1 10 1
+  #-- is end of ros pub params (so we can pass negitive numbers)
+  #where -r is the rate
+  #200 is pwm_left, 1 is duration in milisec (1000 ms = 1 sec)
+  #10 is pwm_right, 1 is duration in milisec (1000 ms = 1 sec)

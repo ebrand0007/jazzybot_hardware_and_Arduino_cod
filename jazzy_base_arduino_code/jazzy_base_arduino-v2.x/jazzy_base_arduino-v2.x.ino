@@ -469,6 +469,12 @@ void drive_robot_raw_callback(const jbot2_msgs::jbot2_pwm& jbot2_pwm_msg)
   int left_duration=jbot2_pwm_msg.left_timeout;
   int right_duration=jbot2_pwm_msg.right_timeout;
   //TODO: limit to -127 to 127 pwm signal?? or us it 255 plus direction bit?
+
+  //Debugging
+  sprintf (buffer, "  Recieved left_pwm: %d", pwm_left);
+  nh.loginfo(buffer);  
+  sprintf (buffer, "  Recieved right_pwm: %d", pwm_right);
+  nh.loginfo(buffer);
   
   
   previous_drive_robot_raw_callback_time=millis();
@@ -506,6 +512,14 @@ void drive_robot_raw_callback(const jbot2_msgs::jbot2_pwm& jbot2_pwm_msg)
 
 void drive_robot( int command_left, int command_right)
 {
+
+  //Debugging
+  sprintf (buffer, "  Recieved command_left_pwm: %d", command_left);
+  nh.loginfo(buffer);  
+  sprintf (buffer, "  Recieved command_right_pwm: %d", command_right);
+  nh.loginfo(buffer);
+
+  
   //this functions spins the left and right wheel based on a defined speed in PWM  
   //change left motor direction
   //forward
