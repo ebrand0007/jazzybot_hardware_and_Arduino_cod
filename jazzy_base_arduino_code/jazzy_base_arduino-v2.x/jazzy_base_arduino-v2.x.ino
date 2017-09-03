@@ -456,6 +456,9 @@ void command_callback( const geometry_msgs::Twist& cmd_msg)
   left_motor.required_rpm = (linear_vel_mins / circumference) - (tangential_vel / circumference);
   right_motor.required_rpm = (linear_vel_mins / circumference) + (tangential_vel / circumference);
 
+  //Time at which to reset motors in milisec - ohcrap situation
+  drive_robot_motor_timeout=millis()+400;   //400 milisec from now
+
 }
 
 /* call back for wringing rew pwm signals to motors
@@ -534,10 +537,6 @@ void drive_robot( int command_left, int command_right)
   nh.loginfo(buffer);  
   sprintf (buffer, "  Recieved command_right_pwm: %d", command_right);
   nh.loginfo(buffer);
-
-  //Time at which to reset motors in milisec - ohcrap situation
-  drive_robot_motor_timeout=previous_drive_robot_raw_callback_time+400;   //400 milisec
-
   
   //this functions spins the left and right wheel based on a defined speed in PWM  
   //change left motor direction
