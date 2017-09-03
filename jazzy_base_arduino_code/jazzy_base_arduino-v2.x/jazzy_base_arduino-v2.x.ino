@@ -50,12 +50,14 @@
  *     -   drive_robot_raw_callback( int pwm_left, int left_timeout, int pwm_right, int right_timeout
  *     -       timeout params are oh-crap timeout parms to stop motors after timeout is exceed, to stop motors after certain after a threashold, 
  *     -       in event serial connection lost sync
- *   
+ *  Sept 3 2017: - Added -255->255 max/min values to drive_robot_raw_callback
+ *               - version 2017-Aug-26-v2.0.1
+ *               - Removed excessive debug logging in drive_robot_raw_callback & drive_robot
  *   
 */
 
 //Version
-const String firmware_version = "Arduino Firmware Version: jazzy_base_arduino-v2.x/2017-Aug-26-v2.0.0";
+const String firmware_version = "Arduino Firmware Version: jazzy_base_arduino-v2.x/2017-Aug-26-v2.0.1";
 
 /* Publishing Encoder PID: 
  *  https://github.com/tonybaltovski/ros_arduino/blob/indigo-devel/ros_arduino_base/firmware/two_wheel_base/two_wheel_base.ino
@@ -171,13 +173,14 @@ unsigned long publish_vel_time = 0;
 unsigned long previous_imu_time = 0;
 unsigned long previous_encoder_time = 0;
 unsigned long previous_jointstate_time = 0;
+unsigned long drive_robot_motor_timeout=0; //time in millisec at which set motor pwm  signals to zero. Reset when drive_robot_raw_callback drive_robot is called
 
 bool is_first = true;
 
 float Kp = k_p;
 float Kd = k_d;
 float Ki = k_i;
-char buffer[50];
+char buffer[50]; //For ROS log info
 
 ros::NodeHandle nh;
 //ros::NodeHandle nh_private_("~");
@@ -305,6 +308,8 @@ void setup()
   Wire.begin();
 #endif
   delay(5);
+  
+  drive_robot_motor_timeout=millis(); //set motor timeout to now()
 }
 
 void loop()
@@ -333,8 +338,9 @@ void loop()
     previous_control_time = millis();
   }
 
-  //this block stops the motor when no command is received
-  if ((millis() - previous_command_time) >= 400)
+  //this block stops the motor when no command is received //TODO: modify this to work with drive_robot_raw_callback
+  //if ((millis() - previous_command_time) >= 400)
+  if ( millis() > drive_robot_motor_timeout ) 
   {
     left_motor.required_rpm = 0;
     right_motor.required_rpm = 0;
@@ -360,7 +366,7 @@ void loop()
     previous_imu_time = millis();
   }
   
-  //this block publishes the encoder readings. change DEBUG to 0 if you don't want to display
+  //this block publishes the encoder readings. change DEBUG to 0 if you don't want to display debugging
   if ((millis() - previous_encoder_time) >= (1000 / ENCODER_RATE))
   {
 
@@ -401,10 +407,8 @@ void loop()
       lino_joint_state_msg.velocity[1]=right_motor.radians_per_sec; //TODO: this is calculated when left_motor.read() is called, timming may be off
       
       //TODO: calculate velocity in radian/sec & publish to lino_joint_state.velocity
-      
-    
+  
       //No CANDO: calualate effort and to publish to lino_joint_state.effort
-
 
       //Publis Joint States
       lino_joint_state_msg.header.stamp = nh.now();
@@ -456,8 +460,8 @@ void command_callback( const geometry_msgs::Twist& cmd_msg)
 
 /* call back for wringing rew pwm signals to motors
  *  msg format:
- *   pwm_left, pwm_right:                int _/- raw 1-255(or 128) values to send to to pins
- *   right_timeout, left_timeout:        milliseconds timeout threshhold(oh-crap) to reset motors back to 0 if now new pwm values are recieved
+ *   pwm_left, pwm_right:  raw int -255 to 255  values to send to to pins
+ *   duration:    :        milliseconds timeout threshhold(oh-crap) to reset motors back to 0 if now new pwm values are recieved
  * 
 */
 void drive_robot_raw_callback(const jbot2_msgs::jbot2_pwm& jbot2_pwm_msg)
@@ -466,29 +470,35 @@ void drive_robot_raw_callback(const jbot2_msgs::jbot2_pwm& jbot2_pwm_msg)
   //change left motor direction
   int pwm_left=jbot2_pwm_msg.left_pwm;
   int pwm_right=jbot2_pwm_msg.right_pwm; 
-  int left_duration=jbot2_pwm_msg.left_timeout;
-  int right_duration=jbot2_pwm_msg.right_timeout;
-  //TODO: limit to -127 to 127 pwm signal?? or us it 255 plus direction bit?
+  int duration=jbot2_pwm_msg.duration;  // in milli sec 
+
 
   //Debugging
-  sprintf (buffer, "  Recieved left_pwm: %d", pwm_left);
-  nh.loginfo(buffer);  
-  sprintf (buffer, "  Recieved right_pwm: %d", pwm_right);
-  nh.loginfo(buffer);
-  
+  /*sprintf (buffer, "  Recieved left_pwm: %d", pwm_left);
+    nh.loginfo(buffer);  
+    sprintf (buffer, "  Recieved right_pwm: %d", pwm_right);
+    nh.loginfo(buffer);
+  */ 
   
   previous_drive_robot_raw_callback_time=millis();
-  //TOD0: write timmer evernt to set l/r  motor PWM 0 (stop) after cmd_left_timeout cmd_right_timeout is exceeded
+  //Time at which to reset motors in milisec - ohcrap situation
+  drive_robot_motor_timeout=previous_drive_robot_raw_callback_time+duration;   
   
   
   //forward
   if (pwm_left >= 0)
   {
+    //set max
+    if ( pwm_left > 255 ) 
+      pwm_left=255;
     digitalWrite(left_motor_direction, HIGH);
   }
   //reverse
   else
   {
+    //set min
+    if ( pwm_left < -255 ) 
+      pwm_left=-255;   
     digitalWrite(left_motor_direction, LOW);
   }
   //spin the motor
@@ -498,11 +508,17 @@ void drive_robot_raw_callback(const jbot2_msgs::jbot2_pwm& jbot2_pwm_msg)
   //forward
   if (pwm_right >= 0)
   {
+    //set max
+    if ( pwm_right > 255 ) 
+      pwm_right=255;
     digitalWrite(right_motor_direction, HIGH);
   }
   //reverse
   else
   {
+    //set min
+    if ( pwm_right < -255 ) 
+      pwm_right=-255;
     digitalWrite(right_motor_direction, LOW);
   }
   //spin the motor
@@ -518,6 +534,9 @@ void drive_robot( int command_left, int command_right)
   nh.loginfo(buffer);  
   sprintf (buffer, "  Recieved command_right_pwm: %d", command_right);
   nh.loginfo(buffer);
+
+  //Time at which to reset motors in milisec - ohcrap situation
+  drive_robot_motor_timeout=previous_drive_robot_raw_callback_time+400;   //400 milisec
 
   
   //this functions spins the left and right wheel based on a defined speed in PWM  
