@@ -1,0 +1,14 @@
+Random notes from ublox-neo-6m
+http://wiki.ros.org/ublox
+https://github.com/ebrand0007/ublox
+
+defaultbaud: 9600
+
+
+$GPRMC,092412.00,V,,,,,,,121017,,,N*75
+       ^UTC time         ^DDNNYY -> date
+        9:24:12           10/12/2017
+
+
+$GPGGA,093421.00,4038.40085,N,07500.41118,W,1,04,2.69,146.1,M,-34.4,M,,*6F
+                 ^Lat    S=negative^ ^Long       ^W=negative 

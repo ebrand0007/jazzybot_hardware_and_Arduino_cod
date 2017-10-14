@@ -97,4 +97,15 @@ Wire size - Sabertooth 2x32
 Sabertooth Arduino exapmle
 https://www.youtube.com/watch?v=QCNoVRgETRc
 
+--------------------------------------------------------------
+Wiring for ublox-neo-6m-wiring to Pine64 pi2 header
+
+ublox                           Expantion Header		Pi2 Header
+------				----------------		---------
+vcc                             Exp pin 9 (3.3v) 	-OR-    pin 1  (3.3v) 
+rx                              				pin 10 (tx)  ttyS2 
+tx                              				pin 8  (rx)  ttYS2
+grnd                            Exp pin 0  (ground)	-OR-	pin 9  ground
+
+
 
