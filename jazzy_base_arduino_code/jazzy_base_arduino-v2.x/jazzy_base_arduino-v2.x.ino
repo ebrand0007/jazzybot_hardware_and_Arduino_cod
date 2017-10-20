@@ -11,13 +11,15 @@
  *     -       timeout params are oh-crap timeout parms to stop motors after timeout is exceed, to stop motors after certain after a threashold, 
  *     -       in event serial connection lost sync
  *  Sept 3 2017: - Added -255->255 max/min values to drive_robot_raw_callback
- *               - version 2017-Aug-26-v2.0.1
+ *               - version 2017-Aug-26-v2.1.1
  *               - Removed excessive debug logging in drive_robot_raw_callback & drive_robot
+ *  Oct 20 2017: - added delay(30) after spinOnce() in main loop
+ *               - version 2017-10-20-v2.1.1
  *   
 */
 
 //Version
-const String firmware_version = "Arduino Firmware Version: jazzy_base_arduino-v2.x/2017-09-03-v2.1.0";
+const String firmware_version = "Arduino Firmware Version: jazzy_base_arduino-v2.x/2017-10-20-v2.1.1";
 #define DEBUG 0
 
 #include <Wire.h>
@@ -227,6 +229,8 @@ void loop()
    
   //call all the callbacks waiting to be called
   nh.spinOnce();
+  //Pause for a bit
+  delay(30); //in milli sec; 10hz ros topic update cycle = 100 millisec, so stay below that
 }
 
 
